@@ -1,9 +1,11 @@
 package com.challenge.brokagefirmapp.request;
 
 import com.challenge.brokagefirmapp.property.Side;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class CreateOrderRequest {
     private Long customerId;
 

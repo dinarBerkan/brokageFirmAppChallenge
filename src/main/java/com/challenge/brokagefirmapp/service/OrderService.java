@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -54,7 +53,7 @@ public class OrderService {
     }
 
     public DeleteOrderResponse deleteOrder(DeleteOrderRequest deleteOrderRequest) {
-        Boolean orderExists = orderRepository.existsById(deleteOrderRequest.getOrderId());
+        boolean orderExists = orderRepository.existsById(deleteOrderRequest.getOrderId());
         DeleteOrderResponse deleteOrderResponse = DeleteOrderResponse.builder().build();
         if (orderExists) {
             orderRepository.deleteById(deleteOrderRequest.getOrderId());
