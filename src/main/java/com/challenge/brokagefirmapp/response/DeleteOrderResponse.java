@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class MainResponse {
-    String output;
+public class DeleteOrderResponse {
+    private Boolean success;
+    private String message;
 }
