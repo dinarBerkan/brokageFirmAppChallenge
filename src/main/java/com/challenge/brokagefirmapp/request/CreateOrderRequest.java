@@ -15,5 +15,5 @@ public class CreateOrderRequest {
 
     private Integer size;
 
-    private Double price;
+    private Integer price;
 }

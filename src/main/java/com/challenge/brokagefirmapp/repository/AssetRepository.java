@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface AssetRepository extends CrudRepository<Asset, Long> {
     List<Asset> findByCustomerId(Long customerId);
+
+    Asset findByCustomerIdAndAssetName(Long customerId, String assetName);
 }

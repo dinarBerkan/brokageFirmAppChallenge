@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
@@ -19,7 +19,7 @@ import java.util.Date;
 @Table(name = "STOCK_ORDER")
 public class Order {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long customerId;
@@ -30,10 +30,10 @@ public class Order {
 
     private Integer size;
 
-    private Double price;
+    private Integer price;
 
     private Status status;
 
-    @CreatedDate
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date createDate;
 }

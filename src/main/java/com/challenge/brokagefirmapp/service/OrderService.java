@@ -1,8 +1,10 @@
 package com.challenge.brokagefirmapp.service;
 
 import com.challenge.brokagefirmapp.domain.Order;
+import com.challenge.brokagefirmapp.dto.AssetDto;
 import com.challenge.brokagefirmapp.dto.OrderDto;
 import com.challenge.brokagefirmapp.mapper.OrderMapper;
+import com.challenge.brokagefirmapp.property.Side;
 import com.challenge.brokagefirmapp.property.Status;
 import com.challenge.brokagefirmapp.repository.OrderRepository;
 import com.challenge.brokagefirmapp.request.CreateOrderRequest;
@@ -14,33 +16,50 @@ import com.challenge.brokagefirmapp.response.ListOrdersResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class OrderService {
+    private static final String TRY_ASSET = "TRY";
+
+    private final AssetService assetService;
+
     private final OrderRepository orderRepository;
 
 
     @Autowired
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(AssetService assetService, OrderRepository orderRepository) {
+        this.assetService = assetService;
         this.orderRepository = orderRepository;
     }
 
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest) {
-        Order order = Order.builder()
-                .customerId(createOrderRequest.getCustomerId())
-                .assetName(createOrderRequest.getAssetName())
-                .orderSide(createOrderRequest.getSide())
-                .price(createOrderRequest.getPrice())
-                .size(createOrderRequest.getSize())
-                .status(Status.PENDING)
-                .createDate(new Date())
-                .build();
-        order = orderRepository.save(order);
-        OrderDto orderDto = OrderMapper.orderMapper.orderToOrderDto(order);
-        return CreateOrderResponse.builder().order(orderDto).build();
+        CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().build();
+        AssetDto tryAsset = assetService.getAssetOfCustomer(createOrderRequest.getCustomerId(), TRY_ASSET);
+
+        if(Side.BUY.equals(createOrderRequest.getSide())) {
+            Integer totalAmount = createOrderRequest.getPrice() * createOrderRequest.getSize();
+            if (tryAsset != null && tryAsset.getUsableSize() >= totalAmount) {
+                createOrderResponse = saveOrder(createOrderRequest);
+            } else {
+                createOrderResponse.setSuccess(Boolean.FALSE);
+                createOrderResponse.setMessage("Customer does not have enough TRY asset size");
+            }
+        } else {
+            AssetDto chosenAsset = assetService.getAssetOfCustomer(createOrderRequest.getCustomerId(), createOrderRequest.getAssetName());
+            if(chosenAsset != null && chosenAsset.getUsableSize() >= createOrderRequest.getSize()) {
+                createOrderResponse = saveOrder(createOrderRequest);
+            } else {
+                createOrderResponse.setSuccess(Boolean.FALSE);
+                createOrderResponse.setMessage("Customer does not have enough " + createOrderRequest.getAssetName() + " asset size");
+            }
+        }
+        return createOrderResponse;
     }
 
     public ListOrdersResponse listOrders(ListOrdersRequest listOrdersRequest) {
@@ -72,5 +91,33 @@ public class OrderService {
             deleteOrderResponse.setMessage("Order does not exist");
         }
         return deleteOrderResponse;
+    }
+
+    private CreateOrderResponse saveOrder(CreateOrderRequest createOrderRequest) {
+        CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().build();
+
+        Date createDate = Date.from(Instant.now());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String formattedDateStr = sdf.format(createDate);
+        try {
+            Date formattedCreateDate = sdf.parse(formattedDateStr);
+            Order order = Order.builder()
+                    .customerId(createOrderRequest.getCustomerId())
+                    .assetName(createOrderRequest.getAssetName())
+                    .orderSide(createOrderRequest.getSide())
+                    .price(createOrderRequest.getPrice())
+                    .size(createOrderRequest.getSize())
+                    .status(Status.PENDING)
+                    .createDate(formattedCreateDate)
+                    .build();
+            order = orderRepository.save(order);
+            createOrderResponse.setOrder(OrderMapper.orderMapper.orderToOrderDto(order));
+            createOrderResponse.setSuccess(Boolean.TRUE);
+            createOrderResponse.setMessage("Order created successfully");
+        } catch (ParseException e) {
+            createOrderResponse.setSuccess(Boolean.FALSE);
+            createOrderResponse.setMessage("Invalid Date Format");
+        }
+        return createOrderResponse;
     }
 }

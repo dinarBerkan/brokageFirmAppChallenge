@@ -7,5 +7,7 @@ import lombok.Data;
 @Data
 @Builder
 public class CreateOrderResponse {
+    private Boolean success;
+    private String message;
     private OrderDto order;
 }

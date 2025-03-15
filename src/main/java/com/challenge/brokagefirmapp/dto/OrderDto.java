@@ -2,12 +2,10 @@ package com.challenge.brokagefirmapp.dto;
 
 import com.challenge.brokagefirmapp.property.Side;
 import com.challenge.brokagefirmapp.property.Status;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
 
 import java.util.Date;
 
@@ -26,7 +24,7 @@ public class OrderDto {
 
     private Integer size;
 
-    private Double price;
+    private Integer price;
 
     private Status status;
 
