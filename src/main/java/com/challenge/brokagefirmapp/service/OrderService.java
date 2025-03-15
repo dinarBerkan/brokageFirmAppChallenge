@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class OrderService {
@@ -53,12 +54,19 @@ public class OrderService {
     }
 
     public DeleteOrderResponse deleteOrder(DeleteOrderRequest deleteOrderRequest) {
-        boolean orderExists = orderRepository.existsById(deleteOrderRequest.getOrderId());
         DeleteOrderResponse deleteOrderResponse = DeleteOrderResponse.builder().build();
-        if (orderExists) {
-            orderRepository.deleteById(deleteOrderRequest.getOrderId());
-            deleteOrderResponse.setSuccess(Boolean.TRUE);
-            deleteOrderResponse.setMessage("Order deleted Successfully");
+        Optional<Order> order = orderRepository.findById(deleteOrderRequest.getOrderId());
+
+        if (order.isPresent()) {
+            Order orderToDelete = order.get();
+            if(orderToDelete.getStatus().equals(Status.PENDING)) {
+                orderRepository.deleteById(deleteOrderRequest.getOrderId());
+                deleteOrderResponse.setSuccess(Boolean.TRUE);
+                deleteOrderResponse.setMessage("Order deleted Successfully");
+            } else {
+                deleteOrderResponse.setSuccess(Boolean.FALSE);
+                deleteOrderResponse.setMessage("Only Pending Orders can be deleted. Requested Order's status is: " + orderToDelete.getStatus());
+            }
         } else {
             deleteOrderResponse.setSuccess(Boolean.FALSE);
             deleteOrderResponse.setMessage("Order does not exist");
