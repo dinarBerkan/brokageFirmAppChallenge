@@ -46,6 +46,8 @@ public class OrderService {
             Integer totalAmount = createOrderRequest.getPrice() * createOrderRequest.getSize();
             if (tryAsset != null && tryAsset.getUsableSize() >= totalAmount) {
                 createOrderResponse = saveOrder(createOrderRequest);
+                tryAsset.setUsableSize(tryAsset.getUsableSize() - totalAmount);
+                assetService.updateAssetOfCustomer(tryAsset.getCustomerId(), tryAsset);
             } else {
                 createOrderResponse.setSuccess(Boolean.FALSE);
                 createOrderResponse.setMessage("Customer does not have enough TRY asset size");
@@ -54,6 +56,8 @@ public class OrderService {
             AssetDto chosenAsset = assetService.getAssetOfCustomer(createOrderRequest.getCustomerId(), createOrderRequest.getAssetName());
             if(chosenAsset != null && chosenAsset.getUsableSize() >= createOrderRequest.getSize()) {
                 createOrderResponse = saveOrder(createOrderRequest);
+                chosenAsset.setUsableSize(chosenAsset.getUsableSize() - createOrderRequest.getSize());
+                assetService.updateAssetOfCustomer(tryAsset.getCustomerId(), chosenAsset);
             } else {
                 createOrderResponse.setSuccess(Boolean.FALSE);
                 createOrderResponse.setMessage("Customer does not have enough " + createOrderRequest.getAssetName() + " asset size");
@@ -80,6 +84,16 @@ public class OrderService {
             Order orderToDelete = order.get();
             if(orderToDelete.getStatus().equals(Status.PENDING)) {
                 orderRepository.deleteById(deleteOrderRequest.getOrderId());
+                if(Side.BUY.equals(orderToDelete.getOrderSide())) {
+                    Integer totalAmount = orderToDelete.getPrice() * orderToDelete.getSize();
+                    AssetDto tryAssetOfCustomer = assetService.getAssetOfCustomer(orderToDelete.getCustomerId(), TRY_ASSET);
+                    tryAssetOfCustomer.setUsableSize(tryAssetOfCustomer.getUsableSize() + totalAmount);
+                    assetService.updateAssetOfCustomer(orderToDelete.getCustomerId(), tryAssetOfCustomer);
+                } else {
+                    AssetDto assetOfCustomer = assetService.getAssetOfCustomer(orderToDelete.getCustomerId(), orderToDelete.getAssetName());
+                    assetOfCustomer.setUsableSize(assetOfCustomer.getUsableSize() + orderToDelete.getSize());
+                    assetService.updateAssetOfCustomer(orderToDelete.getCustomerId(), assetOfCustomer);
+                }
                 deleteOrderResponse.setSuccess(Boolean.TRUE);
                 deleteOrderResponse.setMessage("Order deleted Successfully");
             } else {

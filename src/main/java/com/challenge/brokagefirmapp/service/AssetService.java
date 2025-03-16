@@ -28,4 +28,12 @@ public class AssetService {
         Asset asset = assetRepository.findByCustomerIdAndAssetName(customerId, assetName);
         return AssetMapper.assetMapper.assetToAssetDto(asset);
     }
+
+    public void updateAssetOfCustomer(Long customerId, AssetDto assetDto) {
+        Asset asset = assetRepository.findByCustomerIdAndAssetName(customerId, assetDto.getAssetName());
+        if (asset != null) {
+            asset.setUsableSize(assetDto.getUsableSize());
+            assetRepository.save(asset);
+        }
+    }
 }
