@@ -16,7 +16,6 @@ import com.challenge.brokagefirmapp.response.ListOrdersResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -128,9 +127,9 @@ public class OrderService {
             createOrderResponse.setOrder(OrderMapper.orderMapper.orderToOrderDto(order));
             createOrderResponse.setSuccess(Boolean.TRUE);
             createOrderResponse.setMessage("Order created successfully");
-        } catch (ParseException e) {
+        } catch (Exception e) {
             createOrderResponse.setSuccess(Boolean.FALSE);
-            createOrderResponse.setMessage("Invalid Date Format");
+            createOrderResponse.setMessage("Exception occurred during order creation");
         }
         return createOrderResponse;
     }

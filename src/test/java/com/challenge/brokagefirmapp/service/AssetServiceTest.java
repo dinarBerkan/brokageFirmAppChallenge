@@ -14,6 +14,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class AssetServiceTest {
+    private static final String TEST_ASSET_NAME = "test";
+
     private AssetRepository assetRepository;
 
     private AssetService assetService;
@@ -38,5 +40,36 @@ public class AssetServiceTest {
 
         Assertions.assertNotNull(response);
         Assertions.assertEquals(listAssetsResponse, response);
+    }
+
+    @Test
+    public void test_getAssetOfCustomer() {
+        Asset asset = Asset.builder().id(1L).assetName(TEST_ASSET_NAME).build();
+        AssetDto assetDto = AssetMapper.assetMapper.assetToAssetDto(asset);
+        Mockito.when(assetRepository.findByCustomerIdAndAssetName(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
+
+        AssetDto returnedDto = assetService.getAssetOfCustomer(1L, TEST_ASSET_NAME);
+
+        Assertions.assertNotNull(returnedDto);
+        Assertions.assertEquals(assetDto, returnedDto);
+    }
+
+    @Test
+    public void test_updateAssetOfCustomer_updated() {
+        Asset asset = Asset.builder().id(1L).assetName(TEST_ASSET_NAME).build();
+        AssetDto assetDto = AssetDto.builder().customerId(1L).assetName(TEST_ASSET_NAME).build();
+        Mockito.when(assetRepository.findByCustomerIdAndAssetName(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
+
+        assetService.updateAssetOfCustomer(1L, assetDto);
+        Mockito.verify(assetRepository, Mockito.times(1)).save(Mockito.any(Asset.class));
+    }
+
+    @Test
+    public void test_updateAssetOfCustomer_notUpdated() {
+        AssetDto assetDto = AssetDto.builder().customerId(1L).assetName(TEST_ASSET_NAME).build();
+        Mockito.when(assetRepository.findByCustomerIdAndAssetName(Mockito.anyLong(), Mockito.anyString())).thenReturn(null);
+
+        assetService.updateAssetOfCustomer(1L, assetDto);
+        Mockito.verify(assetRepository, Mockito.never()).save(Mockito.any(Asset.class));
     }
 }

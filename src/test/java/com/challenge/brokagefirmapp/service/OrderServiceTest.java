@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class OrderServiceTest {
+    private static final String TEST_ASSET_NAME = "test";
+
     private AssetService assetService;
 
     private OrderRepository orderRepository;
@@ -41,7 +43,7 @@ public class OrderServiceTest {
     public void test_createOrder_buy_success() {
         Order order = Order.builder().id(1L).orderSide(Side.BUY).build();
         AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName("TRY").assetSize(100).usableSize(100).build();
-        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName("test").side(Side.BUY).price(10).size(10).build();
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName(TEST_ASSET_NAME).side(Side.BUY).price(10).size(10).build();
         CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().success(Boolean.TRUE).message("Order created successfully").order(OrderMapper.orderMapper.orderToOrderDto(order)).build();
 
         Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
@@ -57,7 +59,7 @@ public class OrderServiceTest {
     public void test_createOrder_buy_failure() {
         Order order = Order.builder().id(1L).orderSide(Side.BUY).build();
         AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName("TRY").assetSize(100).usableSize(100).build();
-        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName("test").side(Side.BUY).price(10).size(11).build();
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName(TEST_ASSET_NAME).side(Side.BUY).price(10).size(11).build();
         CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().success(Boolean.FALSE).message("Customer does not have enough TRY asset size").build();
 
         Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
@@ -72,8 +74,8 @@ public class OrderServiceTest {
     @Test
     public void test_createOrder_sell_success() {
         Order order = Order.builder().id(1L).orderSide(Side.SELL).build();
-        AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName("test").assetSize(10).usableSize(10).build();
-        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName("test").side(Side.SELL).price(10).size(10).build();
+        AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName(TEST_ASSET_NAME).assetSize(10).usableSize(10).build();
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName(TEST_ASSET_NAME).side(Side.SELL).price(10).size(10).build();
         CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().success(Boolean.TRUE).message("Order created successfully").order(OrderMapper.orderMapper.orderToOrderDto(order)).build();
 
         Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
@@ -88,12 +90,27 @@ public class OrderServiceTest {
     @Test
     public void test_createOrder_sell_failure() {
         Order order = Order.builder().id(1L).orderSide(Side.SELL).build();
-        AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName("test").assetSize(10).usableSize(9).build();
-        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName("test").side(Side.SELL).price(10).size(10).build();
+        AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName(TEST_ASSET_NAME).assetSize(10).usableSize(9).build();
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName(TEST_ASSET_NAME).side(Side.SELL).price(10).size(10).build();
         CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().success(Boolean.FALSE).message("Customer does not have enough test asset size").build();
 
         Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
         Mockito.when(orderRepository.save(Mockito.any(Order.class))).thenReturn(order);
+
+        CreateOrderResponse response = orderService.createOrder(createOrderRequest);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(createOrderResponse, response);
+    }
+
+    @Test
+    public void test_createOrder_exception() {
+        AssetDto asset = AssetDto.builder().id(1L).customerId(1L).assetName(TEST_ASSET_NAME).assetSize(10).usableSize(10).build();
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.builder().customerId(1L).assetName(TEST_ASSET_NAME).side(Side.SELL).price(10).size(10).build();
+        CreateOrderResponse createOrderResponse = CreateOrderResponse.builder().success(Boolean.FALSE).message("Exception occurred during order creation").build();
+
+        Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(asset);
+        Mockito.when(orderRepository.save(Mockito.any(Order.class))).thenThrow(RuntimeException.class);
 
         CreateOrderResponse response = orderService.createOrder(createOrderRequest);
 
@@ -118,16 +135,33 @@ public class OrderServiceTest {
     }
 
     @Test
-    public void test_deleteOrder_successful() {
-        Order order = Order.builder().id(1L).status(Status.PENDING).build();
+    public void test_deleteOrder_exists_buy_successful() {
+        Order order = Order.builder().id(1L).customerId(1L).orderSide(Side.BUY).price(1).size(1).status(Status.PENDING).build();
         DeleteOrderResponse deleteOrderResponse = DeleteOrderResponse.builder().success(Boolean.TRUE).message("Order deleted Successfully").build();
-
+        AssetDto tryAssetDto = AssetDto.builder().usableSize(1).build();
         Mockito.when(orderRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(order));
+        Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(tryAssetDto);
 
         DeleteOrderResponse response = orderService.deleteOrder(DeleteOrderRequest.builder().orderId(1L).build());
 
         Assertions.assertNotNull(response);
         Assertions.assertEquals(deleteOrderResponse, response);
+        Mockito.verify(assetService, Mockito.times(1)).updateAssetOfCustomer(Mockito.anyLong(), Mockito.any(AssetDto.class));
+    }
+
+    @Test
+    public void test_deleteOrder_exists_sell_successful() {
+        Order order = Order.builder().id(1L).customerId(1L).orderSide(Side.SELL).assetName(TEST_ASSET_NAME).price(1).size(1).status(Status.PENDING).build();
+        DeleteOrderResponse deleteOrderResponse = DeleteOrderResponse.builder().success(Boolean.TRUE).message("Order deleted Successfully").build();
+        AssetDto assetDto = AssetDto.builder().usableSize(1).build();
+        Mockito.when(orderRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(order));
+        Mockito.when(assetService.getAssetOfCustomer(Mockito.anyLong(), Mockito.anyString())).thenReturn(assetDto);
+
+        DeleteOrderResponse response = orderService.deleteOrder(DeleteOrderRequest.builder().orderId(1L).build());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(deleteOrderResponse, response);
+        Mockito.verify(assetService, Mockito.times(1)).updateAssetOfCustomer(Mockito.anyLong(), Mockito.any(AssetDto.class));
     }
 
     @Test

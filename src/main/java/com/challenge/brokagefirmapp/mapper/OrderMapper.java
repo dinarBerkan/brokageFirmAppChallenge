@@ -10,6 +10,4 @@ public interface OrderMapper {
     OrderMapper orderMapper = Mappers.getMapper(OrderMapper.class);
 
     OrderDto orderToOrderDto(Order order);
-
-    Order orderDtoToOrder(OrderDto orderDto);
 }
